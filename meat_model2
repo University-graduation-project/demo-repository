@@ -4,50 +4,50 @@ import matplotlib.pyplot as plt
 
 # Paths to dataset
 train_dir = "/home/daniah/Desktop/ExternalDrive/meat_data/train"
-val_dir = "/home/daniah/Desktop/ExternalDrive/meat_data/validation"
+validation_dir = "/home/daniah/Desktop/ExternalDrive/meat_data/validation"
 
 # Load datasets
-train_ds = tf.keras.utils.image_dataset_from_directory(
-    train_dir,
-    image_size=(150, 150),
-    batch_size=32,
-    label_mode='binary'
+train_dataset = tf.keras.utils.image_dataset_from_directory( #load your img from folder and preper them for training
+    train_dir, #where the data is
+    image_size = (150, 150), #resize all img so i ensures cons input size (for neural), i use smaller size for faster training 
+    batch_size = 32, # process 32 img at once (for faster training and for memory) also helps the model generalize better(will learn from groups of img)
+    label_classification = 'binary' # 0 for spoiled and 1 for fresh , no manual label needed
 )
 
-val_ds = tf.keras.utils.image_dataset_from_directory(
-    val_dir,
-    image_size=(150, 150),
-    batch_size=32,
-    label_mode='binary'
+validation_dataset = tf.keras.utils.image_dataset_from_directory(
+    validation_dir,
+    image_size = (150, 150),
+    batch_size = 32,
+    label_classification = 'binary'
 )
 
-# Simple data augmentation
-data_augmentation = tf.keras.Sequential([
-    layers.RandomFlip("horizontal"),
-    layers.Rescaling(1./255)
-])
+#data increase (dont forget must be before cnn) / i did it cuz if the blood on right it will now that is spoiled if it was in left no so it could learn that blood no matter where = spoiled
+data_increase = tf.keras.Sequential([ 
+    layers.RandomFlip("horizontal"), #flip img left/right (i trained the model that if change it doesn't matter and i double the training data(org + flipped))
+    layers.Rescaling(1./255) #normaliz pixel to 0 and 1 (Divides all pixel values by 255 (e.g., a pixel with value 150 becomes 150/255 ≈ 0.59), Neural networks train faster when inputs are small numbers ([0, 1] instead of [0, 255]).
+]) #i can do rotation and zoom also for more data but it worked so i made it simple :)
 
-# Model architecture
+# Model architecture (My model BRAIN)
 model = models.Sequential([
-    data_augmentation,
-    layers.Conv2D(32, (3, 3), activation='relu'),
-    layers.MaxPooling2D((2, 2)),
+    data_increase, #apply img transformation first
+    layers.Conv2D(32, (3, 3), activation='relu'), #32 filter, 3x3 size (Detects patterns (edges, spots, discoloration)	cuz Meat freshness depends on visual features)
+    layers.MaxPooling2D((2, 2)), Reduces image size while keeping important features
     layers.Conv2D(64, (3, 3), activation='relu'),
     layers.MaxPooling2D((2, 2)),
-    layers.Flatten(),
-    layers.Dense(128, activation='relu'),
-    layers.Dropout(0.2),  # Helps prevent overfitting
-    layers.Dense(1, activation='sigmoid')
+    layers.Flatten(), #Converts image data into a simple list	cuz Prepares for standard neural network layers
+    layers.Dense(128, activation='relu'), #Learns relationships between detected patterns	cuz Combines features to make decisions
+    layers.Dropout(0.2),  # Helps prevent overfitting /Randomly turns off neurons during training	cuz Prevents overfitting (memorizing training images)
+    layers.Dense(1, activation='sigmoid') #output 0 and 1
 ])
 
 # Compile
 model.compile(
-    optimizer='adam',
-    loss='binary_crossentropy',
-    metrics=['accuracy']
+    optimizer = 'adam', #
+    loss = 'binary_crossentropy',
+    metrics = ['accuracy']
 )
 
-# Early stopping to prevent overtraining
+# Early stopping to prevent overtraining (from yours model)
 early_stop = tf.keras.callbacks.EarlyStopping(
     monitor='val_accuracy',
     patience=2,
@@ -56,8 +56,8 @@ early_stop = tf.keras.callbacks.EarlyStopping(
 
 # Train
 history = model.fit(
-    train_ds,
-    validation_data=val_ds,
+    train_dataset,
+    validation_data=validation_dataset,
     epochs=10,
     callbacks=[early_stop]
 )
@@ -89,5 +89,3 @@ plt.close()
 
 print("Training complete!")
 print(f"Best validation accuracy: {max(history.history['val_accuracy']):.2%}")
-print("Model saved as 'Meat_Model.h5'")
-print("Training plots saved as 'training_results.png'")
