@@ -1,0 +1,93 @@
+import tensorflow as tf
+from tensorflow.keras import layers, models
+import matplotlib.pyplot as plt
+
+# Paths to dataset
+train_dir = "/home/daniah/Desktop/ExternalDrive/meat_data/train"
+val_dir = "/home/daniah/Desktop/ExternalDrive/meat_data/validation"
+
+# Load datasets
+train_ds = tf.keras.utils.image_dataset_from_directory(
+    train_dir,
+    image_size=(150, 150),
+    batch_size=32,
+    label_mode='binary'
+)
+
+val_ds = tf.keras.utils.image_dataset_from_directory(
+    val_dir,
+    image_size=(150, 150),
+    batch_size=32,
+    label_mode='binary'
+)
+
+# Simple data augmentation
+data_augmentation = tf.keras.Sequential([
+    layers.RandomFlip("horizontal"),
+    layers.Rescaling(1./255)
+])
+
+# Model architecture
+model = models.Sequential([
+    data_augmentation,
+    layers.Conv2D(32, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Flatten(),
+    layers.Dense(128, activation='relu'),
+    layers.Dropout(0.2),  # Helps prevent overfitting
+    layers.Dense(1, activation='sigmoid')
+])
+
+# Compile
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
+
+# Early stopping to prevent overtraining
+early_stop = tf.keras.callbacks.EarlyStopping(
+    monitor='val_accuracy',
+    patience=2,
+    restore_best_weights=True
+)
+
+# Train
+history = model.fit(
+    train_ds,
+    validation_data=val_ds,
+    epochs=10,
+    callbacks=[early_stop]
+)
+
+# Save model
+model.save('Meat_Model.keras')
+
+# Plot results
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 2, 1)
+plt.plot(history.history['accuracy'], label='Train')
+plt.plot(history.history['val_accuracy'], label='Validation')
+plt.title('Model Accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(history.history['loss'], label='Train')
+plt.plot(history.history['val_loss'], label='Validation')
+plt.title('Model Loss')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend()
+
+plt.tight_layout()
+plt.savefig('training_results.png')
+plt.close()
+
+print("Training complete!")
+print(f"Best validation accuracy: {max(history.history['val_accuracy']):.2%}")
+print("Model saved as 'Meat_Model.h5'")
+print("Training plots saved as 'training_results.png'")
