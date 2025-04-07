@@ -11,14 +11,14 @@ train_dataset = tf.keras.utils.image_dataset_from_directory( #load your img from
     train_dir, #where the data is
     image_size = (150, 150), #resize all img so i ensures cons input size (for neural), i use smaller size for faster training 
     batch_size = 32, # process 32 img at once (for faster training and for memory) also helps the model generalize better(will learn from groups of img)
-    label_classification = 'binary' # 0 for spoiled and 1 for fresh , no manual label needed
+    label_mode = 'binary' # 0 for spoiled and 1 for fresh , no manual label needed
 )
 
 validation_dataset = tf.keras.utils.image_dataset_from_directory(
     validation_dir,
     image_size = (150, 150),
     batch_size = 32,
-    label_classification = 'binary'
+    label_mode = 'binary'
 )
 
 #data increase (dont forget must be before cnn) / i did it cuz if the blood on right it will now that is spoiled if it was in left no so it could learn that blood no matter where = spoiled
@@ -31,7 +31,7 @@ data_increase = tf.keras.Sequential([
 model = models.Sequential([
     data_increase, #apply img transformation first
     layers.Conv2D(32, (3, 3), activation='relu'), #32 filter, 3x3 size (Detects patterns (edges, spots, discoloration)	cuz Meat freshness depends on visual features)
-    layers.MaxPooling2D((2, 2)), Reduces image size while keeping important features
+    layers.MaxPooling2D((2, 2)), #Reduces image size while keeping important features
     layers.Conv2D(64, (3, 3), activation='relu'),
     layers.MaxPooling2D((2, 2)),
     layers.Flatten(), #Converts image data into a simple list	cuz Prepares for standard neural network layers
